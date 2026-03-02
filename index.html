@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>历史时间轴对对碰</title>
+    <style>
+        /* CSS 变量定义，方便主题调整 */
+        :root {
+            --color-apple-green-primary: #73AE52; /* 苹果青 - 主要色 */
+            --color-apple-green-secondary: #A8D8A0; /* 苹果青 - 辅助色 */
+            --color-apple-green-accent: #FBF1D7; /* 苹果青 - 点缀色 (奶酪色) */
+            
+            --color-cheese-primary: #FBF1D7; /* 奶酪色 - 主要色 */
+            --color-cheese-secondary: #FAEAA7; /* 奶酪色 - 辅助色 */
+            --color-cheese-accent: #73AE52; /* 奶酪色 - 点缀色 (苹果青) */
+
+            --text-color: #333; /* 主要文字颜色 */
+            --border-color: var(--color-apple-green-primary); /* 卡牌和控件边框颜色 */
+            --card-back-image: url('images/card_back.png'); /* <--- 这里是卡牌背面的图片路径 */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'SimHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--color-cheese-primary) 0%, var(--color-apple-green-secondary) 50%, var(--color-apple-green-primary) 100%);
+            color: var(--text-color);
+            padding: 20px;
+        }
+
+        .game-container {
+            text-align: center;
+            background-color: rgba(251, 241, 215, 0.95); /* 奶酪色背景，略透明 */
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border: 3px solid var(--border-color);
+            width: 100%;
+            max-width: 650px;
+        }
+
+        h1 {
+            color: var(--color-apple-green-primary);
+            margin-bottom: 25px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            letter-spacing: 2px;
+        }
+
+        .controls {
+            margin-bottom: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            align-items: center;
+            padding: 15px;
+            background: linear-gradient(to right, var(--color-apple-green-secondary), var(--color-cheese-secondary));
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+        }
+
+        .controls label {
+            font-weight: bold;
+            color: var(--text-color);
+            font-size: 1.1em;
+        }
+
+        .controls select {
+            padding: 10px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            background: var(--color-cheese-primary); /* 奶酪色背景 */
+            font-weight: bold;
+            transition: all 0.3s ease;
+            color: var(--text-color);
+        }
+
+        .controls select:hover {
+            background-color: var(--color-apple-green-secondary);
+            transform: scale(1.05);
+        }
+
+        .controls button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--color-apple-green-primary), var(--color-apple-green-secondary));
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(115, 174, 82, 0.4);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .controls button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(115, 174, 82, 0.6);
+        }
+
+        .controls button:active {
+            transform: translateY(0);
+        }
+
+        #timer {
+            font-size: 1.6em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: var(--color-apple-green-primary);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            display: inline-block;
+            min-width: 200px;
+            transition: color 0.3s ease, transform 0.3s ease;
+        }
+
+        #message {
+            font-size: 1.2em;
+            min-height: 3em;
+            margin-bottom: 20px;
+            color: var(--text-color);
+            font-weight: 600;
+            line-height: 1.5;
+            padding: 10px;
+            background-color: rgba(250, 234, 167, 0.5); /* 奶酪色点缀 */
+            border-radius: 8px;
+        }
+
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 110px); /* 4列 */
+            grid-template-rows: repeat(3, 145px);   /* 3行 */
+            gap: 15px;
+            perspective: 1000px; /* 3D翻转效果所需 */
+            margin: 0 auto;
+            justify-content: center;
+        }
+
+        .card {
+            width: 110px;
+            height: 145px;
+            position: relative;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg); /* 卡牌翻转 */
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden; /* 隐藏背面，当正面可见时 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.95em;
+            border-radius: 10px;
+            padding: 12px;
+            word-break: break-word; /* 长单词自动换行 */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            border: 3px solid var(--border-color); /* 使用主题边框颜色 */
+        }
+
+        .card-face.front {
+            background: linear-gradient(135deg, var(--color-cheese-primary), var(--color-cheese-secondary)); /* 奶酪色渐变 */
+            color: var(--text-color);
+            transform: rotateY(180deg); /* 初始状态正面朝下 */
+            line-height: 1.3;
+        }
+
+        .card-face.back {
+            background-color: var(--color-apple-green-primary); /* 苹果青背景 */
+            background-image: var(--card-back-image); /* <--- 使用CSS变量引用图片 */
+            background-size: cover; /* 图片覆盖整个卡牌 */
+            background-position: center; /* 图片居中 */
+            color: white; /* 文字颜色设为白色，以便在图片上可见 */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* 文字添加阴影 */
+        }
+
+        .card.matched {
+            animation: matchPulse 0.6s ease;
+        }
+
+        .card.matched .card-face {
+            border-color: #FFD700; /* 匹配成功时边框变金黄色 */
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        }
+
+        .card.matched {
+            cursor: default; /* 已匹配卡牌不可再点击 */
+        }
+
+        @keyframes matchPulse {
+            0%, 100% { transform: scale(1) rotateY(180deg); }
+            50% { transform: scale(1.1) rotateY(180deg); }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2em;
+            }
+            #game-board {
+                grid-template-columns: repeat(3, 100px); /* 3列 */
+                grid-template-rows: repeat(4, 135px);   /* 4行 */
+                gap: 12px;
+            }
+            .card {
+                width: 100px;
+                height: 135px;
+            }
+            .card-face {
+                font-size: 0.85em;
+            }
+        }
+
+        @media (max-width: 400px) {
+            #game-board {
+                grid-template-columns: repeat(2, 105px); /* 2列 */
+                grid-template-rows: repeat(6, 140px);   /* 6行 */
+                gap: 10px;
+            }
+            .card {
+                width: 105px;
+                height: 140px;
+            }
+            h1 {
+                font-size: 1.6em;
+            }
+            .controls {
+                flex-direction: column; /* 控件堆叠 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🎯 历史时间轴对对碰</h1>
+
+        <div class="controls">
+            <label for="time-select">⏰ 选择时间:</label>
+            <select id="time-select">
+                <option value="60">1分钟</option>
+                <option value="120" selected>2分钟</option>
+                <option value="180">3分钟</option>
+            </select>
+
+            <button id="start-button">开始游戏</button>
+            <button id="play-again-button" style="display: none;">再来一次</button>
+        </div>
+
+        <div id="timer">时间剩余: --:--</div>
+        <div id="message">选择时间后，点击开始游戏按钮开始挑战！</div>
+
+        <div id="game-board">
+            <!-- 卡牌将由 JavaScript 动态生成 -->
+        </div>
+    </div>
+
+    <script>
+        // --- 游戏数据 ---
+        const cardData = [
+            { year: '1949年', event: '中华人民共和国成立' },
+            { year: '1950年', event: '土地改革开始\n抗美援朝战争爆发' },
+            { year: '1951年', event: '西藏和平解放' },
+            { year: '1953年', event: '三大改造开始\n一五计划启动' },
+            { year: '1954年', event: '一届全国人大召开\n54宪法颁布' },
+            { year: '1956年', event: '三大改造完成' }
+        ];
+
+        // --- 音效生成器 (使用 Web Audio API) ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioContext; // 延迟初始化
+        let isAudioContextInitialized = false; // 标记是否已初始化
+
+        function initializeAudioContext() {
+            if (!isAudioContextInitialized && AudioContext) {
+                audioContext = new AudioContext();
+                // 修复 iOS 13+ 自动播放策略，需要用户交互后才允许播放
+                if (audioContext.state === 'suspended') {
+                    document.body.addEventListener('click', () => {
+                        audioContext.resume();
+                    }, { once: true });
+                }
+                isAudioContextInitialized = true;
+            }
+        }
+
+        // 正确音效 - 清脆的上升音调
+        function playCorrectSound() {
+            initializeAudioContext(); // 确保 AudioContext 已初始化
+            if (!audioContext) return;
+
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+            oscillator.frequency.linearRampToValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+            
+            oscillator.type = 'sine';
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        }
+
+        // 错误音效 - 低沉的下降音调
+        function playIncorrectSound() {
+            initializeAudioContext(); // 确保 AudioContext 已初始化
+            if (!audioContext) return;
+
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(150, audioContext.currentTime + 0.2);
+            
+            oscillator.type = 'sawtooth';
+            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+        }
+
+        // --- DOM 元素获取 ---
+        const gameBoard = document.getElementById('game-board');
+        const startButton = document.getElementById('start-button');
+        const playAgainButton = document.getElementById('play-again-button');
+        const timeSelect = document.getElementById('time-select');
+        const timerDisplay = document.getElementById('timer');
+        const messageDisplay = document.getElementById('message');
+
+        // --- 游戏状态变量 ---
+        let currentCards = [];     // 当前游戏中的所有卡牌 DOM 元素
+        let flippedCards = [];     // 当前已翻开但未匹配的卡牌 DOM 元素
+        let matchedPairs = 0;      // 已成功匹配的对数
+        let gameTimer = null;      // 计时器 ID
+        let isGameActive = false;  // 游戏是否正在进行
+        const TOTAL_PAIRS = cardData.length; // 总配对数
+
+        // --- 初始化函数 ---
+        function initGame() {
+            timerDisplay.textContent = `时间剩余: ${formatTime(parseInt(timeSelect.value, 10))}`;
+            startButton.style.display = 'inline-block';
+            playAgainButton.style.display = 'none';
+            messageDisplay.textContent = "选择时间后，点击开始游戏按钮开始挑战！";
+            gameBoard.innerHTML = '';
+            isGameActive = false;
+            stopTimer();
+            initializeAudioContext(); // 初始化音频上下文，为后续播放做准备
+        }
+
+        // --- 开始游戏 ---
+        startButton.addEventListener('click', () => {
+            resetGameForStart(); // 重置所有游戏状态
+            renderBoard(); // 渲染卡牌
+            startTimer(); // 启动计时器
+            startButton.style.display = 'none'; // 隐藏开始按钮
+            messageDisplay.textContent = "加油！找到所有匹配的历史事件！";
+        });
+
+        // --- 再来一次 ---
+        playAgainButton.addEventListener('click', () => {
+            resetGameForStart(); // 重置所有游戏状态
+            renderBoard(); // 渲染卡牌
+            startTimer(); // 启动计时器
+            playAgainButton.style.display = 'none'; // 隐藏再来一次按钮
+            messageDisplay.textContent = "加油！找到所有匹配的历史事件！";
+        });
+
+        // --- 渲染游戏面板 ---
+        function renderBoard() {
+            gameBoard.innerHTML = ''; // 清空旧卡牌
+            currentCards = [];
+            flippedCards = [];
+            matchedPairs = 0;
+            isGameActive = true;
+
+            // 准备所有卡牌数据（年份和事件各一张）
+            let allCardData = [];
+            cardData.forEach(item => {
+                // 添加年份卡
+                allCardData.push({ 
+                    id: item.year, // 使用年份作为配对的唯一标识
+                    content: item.year, 
+                    type: 'year' 
+                });
+                // 添加事件卡
+                allCardData.push({ 
+                    id: item.year, // 相同年份ID，用于匹配
+                    content: item.event, 
+                    type: 'event' 
+                });
+            });
+
+            // 打乱卡牌顺序
+            shuffleArray(allCardData);
+
+            // 创建卡牌 DOM 元素并添加到面板
+            allCardData.forEach(data => {
+                const cardElement = createCardElement(data);
+                gameBoard.appendChild(cardElement);
+                currentCards.push(cardElement);
+            });
+        }
+
+        // --- 创建单个卡牌 DOM 元素 ---
+        function createCardElement(data) {
+            const card = document.createElement('div');
+            card.classList.add('card');
+            card.dataset.id = data.id; // 存储匹配用的ID (年份)
+            card.dataset.type = data.type; // 存储卡牌类型 (year / event)
+
+            // 卡牌正面
+            const frontFace = document.createElement('div');
+            frontFace.classList.add('card-face', 'front');
+            frontFace.textContent = data.content; // 显示年份或事件
+
+            // 卡牌背面
+            const backFace = document.createElement('div');
+            backFace.classList.add('card-face', 'back');
+
+            card.appendChild(frontFace);
+            card.appendChild(backFace);
+
+            // 添加点击事件监听器
+            card.addEventListener('click', handleCardClick);
+            return card;
+        }
+
+        // --- 处理卡牌点击 ---
+        function handleCardClick(event) {
+            // 获取点击的卡牌元素本身（不是内部的div）
+            const clickedCard = event.currentTarget; 
+            
+            // 忽略无效点击：游戏未激活、已翻开两张、卡牌已翻开、或卡牌已匹配
+            if (!isGameActive || flippedCards.length >= 2 || 
+                clickedCard.classList.contains('flipped') || 
+                clickedCard.classList.contains('matched')) {
+                return;
+            }
+
+            flipCard(clickedCard); // 翻开卡牌
+            flippedCards.push(clickedCard); // 加入待检查列表
+
+            // 如果当前已翻开两张牌，则进行匹配判断
+            if (flippedCards.length === 2) {
+                const card1 = flippedCards[0];
+                const card2 = flippedCards[1];
+
+                // 检查是否为同一对且类型不同 (年份 vs 事件)
+                if (card1.dataset.id === card2.dataset.id && card1.dataset.type !== card2.dataset.type) {
+                    matchCards(); // 匹配成功
+                } else {
+                    playIncorrectSound(); // 匹配失败音效
+                    unflipCards();     // 两张牌翻回背面
+                }
+            }
+        }
+
+        // --- 翻开卡牌 ---
+        function flipCard(cardElement) {
+            cardElement.classList.add('flipped');
+        }
+
+        // --- 将未匹配的卡牌翻回背面 ---
+        function unflipCards() {
+            setTimeout(() => {
+                flippedCards.forEach(card => {
+                    card.classList.remove('flipped');
+                });
+                flippedCards = []; // 清空已翻开列表
+            }, 1000); // 延迟1秒后翻回
+        }
+
+        // --- 匹配成功处理 ---
+        function matchCards() {
+            flippedCards.forEach(card => {
+                card.classList.add('matched'); // 添加匹配成功动画类
+                card.removeEventListener('click', handleCardClick); // 移除已匹配卡牌的点击事件
+            });
+            matchedPairs++; // 匹配对数增加
+            playCorrectSound(); // 播放正确音效
+
+            // 检查是否所有卡牌都已匹配
+            if (matchedPairs === TOTAL_PAIRS) {
+                endGame(true); // 游戏胜利
+            }
+            flippedCards = []; // 清空已翻开列表
+        }
+
+        // --- 计时器 ---
+        function startTimer() {
+            const timeInSeconds = parseInt(timeSelect.value, 10);
+            let timeLeft = timeInSeconds;
+
+            timerDisplay.textContent = `时间剩余: ${formatTime(timeLeft)}`;
+
+            gameTimer = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = `时间剩余: ${formatTime(timeLeft)}`;
+
+                // 时间剩余10秒时，计时器变红
+                if (timeLeft <= 10 && timeLeft > 0) {
+                    timerDisplay.style.color = '#ff0000';
+                    timerDisplay.style.transform = 'scale(1.1)';
+                } else {
+                    timerDisplay.style.color = 'var(--color-apple-green-primary)';
+                    timerDisplay.style.transform = 'scale(1)';
+                }
+
+                // 时间耗尽
+                if (timeLeft <= 0) {
+                    endGame(false); // 时间到，游戏结束
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(gameTimer);
+            gameTimer = null;
+            timerDisplay.style.color = 'var(--color-apple-green-primary)'; // 重置颜色
+            timerDisplay.style.transform = 'scale(1)'; // 重置缩放
+        }
+
+        // --- 格式化时间 (秒 -> 分:秒) ---
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        // --- 游戏结束 ---
+        function endGame(won) {
+            isGameActive = false; // 游戏状态设为非激活
+            stopTimer(); // 停止计时器
+
+            if (won) {
+                messageDisplay.textContent = "🎉 恭喜你！全部时间轴事件都找到了！历史知识掌握得真棒！";
+                messageDisplay.style.color = 'var(--color-apple-green-primary)';
+                // 播放两次成功音效，增加庆祝感
+                setTimeout(() => playCorrectSound(), 100);
+                setTimeout(() => playCorrectSound(), 300);
+            } else {
+                messageDisplay.textContent = `⏰ 时间到！你找到了 ${matchedPairs} / ${TOTAL_PAIRS} 对。历史的脚步从未停止，再来挑战一次吧！`;
+                messageDisplay.style.color = '#ff6b6b'; // 红色提示
+            }
+            playAgainButton.style.display = 'inline-block'; // 显示“再来一次”按钮
+            startButton.style.display = 'none'; // 隐藏“开始游戏”按钮
+        }
+
+        // --- 重置游戏状态，为开始新游戏做准备 ---
+        function resetGameForStart() {
+            messageDisplay.textContent = "";
+            messageDisplay.style.color = 'var(--text-color)'; // 重置消息颜色
+            timerDisplay.textContent = "时间剩余: --:--";
+            playAgainButton.style.display = 'none';
+            startButton.style.display = 'inline-block'; // 确保开始按钮可见
+            gameBoard.innerHTML = ''; // 清空卡牌
+            isGameActive = false;
+            stopTimer();
+        }
+
+        // --- 工具函数：打乱数组 (Fisher-Yates Shuffle 算法) ---
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // 元素交换
+            }
+            return array;
+        }
+
+        // --- 初始化游戏 ---
+        initGame(); // 页面加载完成后执行初始化
+    </script>
+</body>
+</html>
